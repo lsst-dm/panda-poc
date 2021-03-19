@@ -8,7 +8,7 @@ payload:
   runInit: true
   payloadName: rc2
   butlerConfig: /project/hsc/gen3repo/rc2w06_ssw06/butler.yaml
-  inCollection: HSC/calib,HSC/raw/all,HSC/masks,refcats,skymaps
+  inCollection: HSC/defaults
   output: "RC2/w_2021_06/DM-28654"
   outCollection: "{output}/{timestamp}"
   # tracts (smallest to largest): 9615, 9697, 9813
