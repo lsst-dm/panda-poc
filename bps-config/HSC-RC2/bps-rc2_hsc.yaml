@@ -1,4 +1,4 @@
-pipelineYaml: /home/madamow/gen2-to-gen3/bps/HSC-RC2.yaml 
+pipelineYaml: HSC-PANDA.yaml
 #qgraphFile: /home/madamow/gen2-to-gen3/bps/submit/RC2/w_2021_02/DM-28282/20210217T154224Z/RC2_w_2021_02_DM-28282_20210217T154224Z.qgraph 
 project: dev
 campaign: "G3W06"
@@ -12,7 +12,7 @@ payload:
   output: "RC2/w_2021_06/DM-28654"
   outCollection: "{output}/{timestamp}"
   # tracts (smallest to largest): 9615, 9697, 9813
-  dataQuery: "tract = 9813 and instrument='HSC' and skymap='hsc_rings_v1'"
+  dataQuery: "tract = 9615 and patch=30 and instrument='HSC' and skymap='hsc_rings_v1'"
 
 pipetask:
   pipetaskInit:
