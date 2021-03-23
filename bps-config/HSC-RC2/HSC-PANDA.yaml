@@ -7,6 +7,10 @@ imports:
       - forcedPhotCcd
       - skyCorr
 tasks:
+  isr:
+    class: lsst.ip.isr.IsrTask
+    config:
+      doStrayLight: False
   makeWarp:
     class: lsst.pipe.tasks.makeCoaddTempExp.MakeWarpTask
     config:
