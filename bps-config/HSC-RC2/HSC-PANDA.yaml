@@ -5,6 +5,7 @@ imports:
     location: "${OBS_SUBARU_DIR}/pipelines/DRP.yaml"
     exclude:
       - forcedPhotCcd
+      - forcedPhotCoadd
       - skyCorr
 tasks:
   isr:
