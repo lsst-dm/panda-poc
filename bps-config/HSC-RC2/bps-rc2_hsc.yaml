@@ -2,37 +2,42 @@ pipelineYaml: HSC-PANDA.yaml
 #qgraphFile: /home/madamow/gen2-to-gen3/bps/submit/RC2/w_2021_02/DM-28282/20210217T154224Z/RC2_w_2021_02_DM-28282_20210217T154224Z.qgraph 
 project: dev
 campaign: "G3W06"
-computeSite: ncsapool
+submitPath: ${PWD}/submit/{outCollection}
+container_obs_panda_edge_node_dir: /opt/lsst/software/stack/stack/miniconda3-py38_4.9.2-0.4.3/Linux64/ctrl_bps/21.0.0-12-gb727b04+103c36da8a/python/lsst/ctrl/bps/wms/panda/edgenode
+container_CTRL_MPEXEC_DIR: /opt/lsst/software/stack/stack/miniconda3-py38_4.9.2-0.4.3/Linux64/ctrl_mpexec/21.0.0-24-g0c1e3ff+d4d6b51e8d/
+computing_queue: DOMA_LSST_GOOGLE_TEST
+computing_queue_himem: DOMA_LSST_GOOGLE_TEST_HIMEM
+himem_steps: ['makeWarp', 'assembleCoadd', 'deblend', 'measure', 'pipetaskInit']
+maxwalltime: 90000
+maxattempt: 5
+
 
 payload:
   runInit: true
   payloadName: rc2
-  butlerConfig: /project/hsc/gen3repo/rc2w06_ssw06/butler.yaml
+  butlerConfig: s3://butler-us-central1-panda-dev/hsc/butler.yaml
   inCollection: HSC/defaults
   output: "RC2/w_2021_06/DM-28654"
   outCollection: "{output}/{timestamp}"
   # tracts (smallest to largest): 9615, 9697, 9813
-  dataQuery: "tract = 9615 and patch=30 and instrument='HSC' and skymap='hsc_rings_v1'"
+  dataQuery: "tract = 9615 and patch=30 and detector IN (0..103) and detector != 9 and instrument='HSC' and skymap='hsc_rings_v1'"
+  sw_image: "docker://spodolsky/centos:7-stack-lsst_distrib-w_2021_13"
+  bucket: "s3://butler-us-central1-panda-dev/hsc"
+  s3_endpoint_url: "https://storage.googleapis.com"
+  payload_folder: payload
+  runner_command: 'singularity exec -B /cloudcreds:/cloudcreds --no-home --cleanenv {sw_image} {container_obs_panda_edge_node_dir}/sw_runner _cmd_line_ ${{IN/L}} "{container_obs_panda_edge_node_dir}" >&2;'
 
 pipetask:
   pipetaskInit:
-    runQuantumCommand: "${CTRL_MPEXEC_DIR}/bin/pipetask --long-log run -b {butlerConfig} -i {inCollection} --output {output} --output-run {outCollection} --init-only --register-dataset-types --qgraph {qgraphFile} --clobber-partial-outputs --no-versions"
-    requestMemory: 2048
+    runQuantumCommand: "{container_CTRL_MPEXEC_DIR}/bin/pipetask --log-level=DEBUG  run -b {butlerConfig} -i {inCollection} --output {output} --output-run {outCollection} --init-only --register-dataset-types --qgraph {bucket}/{payload_folder}/{uniqProcName}/${{IN/L}} --clobber-partial-outputs --no-versions --skip-existing"
   assembleCoadd:
-    requestMemory: 8192
-  deblend:
-    requestMemory: 3000
-  measure:
-    requestMemory: 14000
-  makeWarp:
-    requestMemory: 85000
+    requestMemory: 8
 
 submitPath: ${PWD}/submit/{outCollection}
 saveDot: False
-requestMemory: 2048
 requestCpus: 1
-wmsServiceClass: lsst.ctrl.bps.wms.htcondor.htcondor_service.HTCondorService
+wmsServiceClass: lsst.ctrl.bps.wms.panda.panda_service.PanDAService
 clusterAlgorithm: lsst.ctrl.bps.quantum_clustering_funcs.single_quantum_clustering
-createQuantumGraph: '${CTRL_MPEXEC_DIR}/bin/pipetask qgraph -d "{dataQuery}" -b {butlerConfig} -i {inCollection} -p {pipelineYaml} -q {qgraphFile} --qgraph-dot {qgraphFile}.dot'
-runQuantumCommand: "${CTRL_MPEXEC_DIR}/bin/pipetask --long-log run -b {butlerConfig} -i {inCollection} --output {output} --output-run {outCollection} --extend-run --skip-init-writes --qgraph {qgraphFile} --clobber-partial-outputs --no-versions"
+createQuantumGraph: '${CTRL_MPEXEC_DIR}/bin/pipetask qgraph -d "{dataQuery}" -b {butlerConfig} -i {inCollection} -p {pipelineYaml} -q {qgraphFile} --qgraph-dot {qgraphFile}.dot --instrument lsst.obs.subaru.HyperSuprimeCam'
+runQuantumCommand: "{container_CTRL_MPEXEC_DIR}/bin/pipetask --log-level=DEBUG  run -b {butlerConfig} -i {inCollection} --output {output} --output-run {outCollection} --extend-run --skip-init-writes --qgraph {bucket}/{payload_folder}/{uniqProcName}/${{IN/L}} --clobber-partial-outputs --skip-existing --no-versions"
 templateDataId: "{tract}_{patch}_{band}_{visit}_{exposure}_{detector}"
