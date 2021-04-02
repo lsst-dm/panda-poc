@@ -1,6 +1,6 @@
 #pipelineYaml: ${PIPE_TASKS_DIR}/pipelines/_SingleFrame.yaml
 #pipelineYaml: /tmp/HSC-RC2.yaml 
-pipelineYaml: /home/spadolski/generation/functional_tests/HSC-PANDA_small.yaml
+pipelineYaml: /home/spadolski/generation/functional_tests/HSC-PANDA.yaml
 #qgraphFile: /home/madamow/gen2-to-gen3/bps/submit/RC2/w_2021_02/DM-28282/20210217T154224Z/RC2_w_2021_02_DM-28282_20210217T154224Z.qgraph 
 project: dev
 campaign: "G3W06"
