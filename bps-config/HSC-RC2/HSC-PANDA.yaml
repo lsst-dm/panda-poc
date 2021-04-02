@@ -5,9 +5,18 @@ imports:
     location: "${OBS_SUBARU_DIR}/pipelines/DRP.yaml"
     exclude:
       - forcedPhotCcd
+      - forcedPhotCoadd
+      - skyCorr
 tasks:
   makeWarp:
     class: lsst.pipe.tasks.makeCoaddTempExp.MakeWarpTask
+    config:
+      useGlobalExternalPhotoCalib: False
+      doApplyExternalPhotoCalib: False
+      doApplyExternalSkyWcs: False
+      doApplySkyCorr: False
+  assembleCoadd:
+    class: lsst.pipe.tasks.assembleCoadd.CompareWarpAssembleCoaddTask
     config:
       useGlobalExternalPhotoCalib: False
       doApplyExternalPhotoCalib: False
