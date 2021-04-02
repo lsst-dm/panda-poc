@@ -20,7 +20,7 @@ payload:
   output: "RC2/w_2021_06/DM-28654"
   outCollection: "{output}/{timestamp}"
   # tracts (smallest to largest): 9615, 9697, 9813
-  dataQuery: "(tract = 9615 or tract=9697 or or (tract=9813 and patch not in (0, 8, 9, 63, 72, 73, 80))) and detector IN (0..103) and detector != 9 and instrument='HSC' and skymap='hsc_rings_v1'"
+  dataQuery: "tract = 9615 and patch=30 and detector IN (0..103) and detector != 9 and instrument='HSC' and skymap='hsc_rings_v1'"
   sw_image: "docker://spodolsky/centos:7-stack-lsst_distrib-w_2021_13"
   bucket: "s3://butler-us-central1-panda-dev/hsc"
   s3_endpoint_url: "https://storage.googleapis.com"
