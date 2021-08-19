@@ -1,0 +1,131 @@
+pipelineYaml: "$OBS_LSST_DIR/pipelines/imsim/DRP.yaml#singleFrame,multiVisit"
+#  OR
+#USER qgraphFile: "/path/to/existing/file.qgraph"
+
+#PANDA plugin specific settings:
+idds_server: "https://aipanda015.cern.ch:443/idds"
+placeholderParams: ['qgraphNodeId', 'qgraphId']
+
+#IDF PanDA specific settings:
+computing_cloud: LSST
+
+#SLAC PanDA specific settings:
+#computing_cloud: US
+#computeSite: DOMA_LSST_SLAC_TEST
+
+
+
+# At minimum, following group used in bps report and can be
+# used in WMS queries.  Users can use in other things such as "output". 
+operator: huanlin    # defaults to login on submit machine
+project: dev
+campaign: quick
+
+# Any extra site-specific settings needed for WMS
+#USER computeSite: ncsapool
+
+# Make sure these values correspond to ones in the bin/run_demo.sh's
+# pipetask command line.
+payload:
+  payloadName: singleFrame_multiVisit    # At minimum, used in bps report
+  runInit: true
+  output: "u/{operator}/panda_test_dp0_tract_3828_patch_18_d_2021_08_16"
+  outCollection: "{output}/{timestamp}"
+
+  butlerConfig: s3://butler-us-central1-panda-dev/dc2/butler.yaml
+  inCollection: "2.2i/defaults/DP0.2"
+  dataQuery: "instrument='LSSTCam-imSim' and skymap='DC2' and (tract=3828 and patch=18)"
+#  dataQuery: "tract = 9615 and patch=30 and detector IN (10..11) and instrument='HSC' and skymap='hsc_rings_v1' and band in ('r')"
+
+  #USER butlerConfig: ${PIPELINES_CHECK_DIR}/DATA_REPO/butler.yaml
+  #USER inCollection: HSC/calib,HSC/raw/all,refcats
+  #USER dataQuery: exposure=903342 AND detector=10
+
+  sw_image: "spodolsky/centos:7-stack-lsst_distrib-d_2021_08_16"
+  fileDistributionEndPoint: "s3://butler-us-central1-panda-dev/dc2/{payload_folder}/{uniqProcName}/"
+#  fileDistributionEndPoint: "s3://butler-us-central1-panda-dev/hsc/{payload_folder}/{uniqProcName}/"
+  s3_endpoint_url: "https://storage.googleapis.com"
+  payload_folder: payload
+  runner_command: 'docker run --network host --privileged --env AWS_ACCESS_KEY_ID=$(</credentials/AWS_ACCESS_KEY_ID) --env AWS_SECRET_ACCESS_KEY=$(</credentials/AWS_SECRET_ACCESS_KEY) --env PGPASSWORD=$(</credentials/PGPASSWORD) --env S3_ENDPOINT_URL=${S3_ENDPOINT_URL} {sw_image} /bin/bash -c "source /opt/lsst/software/stack/loadLSST.bash;cd /tmp;ls -a;setup lsst_distrib;pwd;python3 \${CTRL_BPS_DIR}/python/lsst/ctrl/bps/wms/panda/edgenode/cmd_line_decoder.py _cmd_line_ " >&2;'
+
+pipetask:
+  pipetaskInit:
+    runQuantumCommand: "${CTRL_MPEXEC_DIR}/bin/pipetask --long-log run -b {butlerConfig} -i {inCollection} --output-run {outCollection} --init-only --register-dataset-types --qgraph {fileDistributionEndPoint}/{qgraphFile} --extend-run --clobber-outputs --no-versions"
+  forcedPhotCoadd: 
+    requestMemory: 4096
+  forcedPhotDiffim: 
+    requestMemory: 4096
+  imageDifference: 
+    requestMemory: 4096
+  makeWarp:
+    requestMemory: 4096
+  assembleCoadd:
+    requestMemory: 4096
+  deblend:
+    requestMemory: 16384
+    requestCpus: 2
+  measure:
+    requestMemory: 16384
+    requestCpus: 2
+  mergeMeasurements:
+    requestMemory: 16384
+    requestCpus: 2
+  writeObjectTable:
+    requestMemory: 16384
+    requestCpus: 2
+  forcedPhotCcd:
+    requestMemory: 8192
+
+
+  #OPT myTask:
+  #OPT   requestCpus:
+  #OPT   requestMemory:
+  #OPT   requestDisk:
+  #OPT   requestWalltime:
+  #OPT   runQuantumCommand:
+  #OPT   retries:
+
+
+executionButler:
+  whenCreate: "SUBMIT"
+  #whenCreate: "NEVER"
+  #USER executionButlerDir: "/my/exec/butler/dir"  # if user provided, otherwise uses executionButlerTemplate
+  createCommand: "${CTRL_MPEXEC_DIR}/bin/pipetask qgraph -b {butlerConfig} --input {inCollection} --output-run {outCollection} --save-execution-butler {executionButlerDir} -g {qgraphFile}"
+  whenMerge: "ALWAYS"
+  #whenMerge: "NEVER"
+  implementation: JOB  # JOB, WORKFLOW
+  concurrency_limit: db_limit
+  command1: "${DAF_BUTLER_DIR}/bin/butler --log-level=VERBOSE transfer-datasets  {executionButlerDir} {butlerConfig} --collections {outCollection}"
+  command2: "${DAF_BUTLER_DIR}/bin/butler collection-chain {butlerConfig} {output} {outCollection} --mode=prepend"
+
+  # For --replace-run behavior need to run two collection-chain commands:
+  #command2: "${DAF_BUTLER_DIR}/bin/butler collection-chain {butlerConfig} {output} --mode=pop 1"
+  #command3: "${DAF_BUTLER_DIR}/bin/butler collection-chain {butlerConfig} {output} --mode=prepend {outCollection}"
+
+# Default commands and usage requests for creating QuantumGraph, running Quantum.
+# Defaults to using full workflow QuantumGraph instead of per-job QuantumGraphs.
+whenSaveJobQgraph: "NEVER"
+createQuantumGraph: '${CTRL_MPEXEC_DIR}/bin/pipetask qgraph -d "{dataQuery}" -b {butlerConfig} -i {inCollection} -p {pipelineYaml} -q {qgraphFile} {pipelineOptions}'
+runQuantumCommand: "${CTRL_MPEXEC_DIR}/bin/pipetask --long-log run -b {butlerConfig} --output-run {outCollection} --qgraph {fileDistributionEndPoint}/{qgraphFile} --qgraph-id {qgraphId} --qgraph-node-id {qgraphNodeId} --skip-init-writes --extend-run --clobber-outputs --skip-existing"
+
+requestMemory: 2048
+requestCpus: 1
+
+wmsServiceClass: lsst.ctrl.bps.wms.panda.panda_service.PanDAService
+clusterAlgorithm: lsst.ctrl.bps.quantum_clustering_funcs.single_quantum_clustering
+
+# Template for bps filenames
+submitPath: ${PWD}/submit/{outCollection}
+qgraphFileTemplate: "{uniqProcName}.qgraph"
+executionButlerTemplate: "{submitPath}/EXEC_REPO-{uniqProcName}"
+subDirTemplate: "{label}/{tract}/{patch}/{visit.day_obs}/{exposure.day_obs}/{band}/{subfilter}/{physical_filter}/{visit}/{exposure}"
+templateDataId: "{tract}_{patch}_{band}_{visit}_{exposure}_{detector}"
+
+# Whether to output bps-specific intermediate files
+saveDot: False
+saveGenericWorkflow: False
+saveClusteredQgraph: False
+
+# Temporary backward-compatibility settings
+useLazyCommands: True
+useBpsShared: False
